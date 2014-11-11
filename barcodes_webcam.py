@@ -9,6 +9,7 @@ import IPython.display
 import numpy
 import PIL.Image
 import PIL.ImageDraw
+import PIL.ImageFont
 import zbar
 
 
@@ -20,7 +21,7 @@ def numpy2pil(image_array):
     except:
         # Uh... maybe it was grayscale?
         rgb_array = cv2.cvtColor(image_array, cv2.COLOR_GRAY2RGB)
-    
+
     # Convert to PIL image
     return PIL.Image.fromarray(rgb_array)
 
@@ -38,6 +39,9 @@ scanner.parse_config('enable')
 latest_frame = None
 latest_output = None
 
+font = PIL.ImageFont.truetype("Arial Black.ttf", 16)
+
+
 class Recogniser(threading.Thread):
     running = True
 
@@ -48,10 +52,10 @@ class Recogniser(threading.Thread):
         latest_output_time = 0
         while self.running:
             time.sleep(0.05)
-            
+
             if time.time() - latest_output_time > self.DISAPPEAR:
                 latest_output = None
-            
+
             if not latest_frame:
                 continue
 
@@ -61,7 +65,7 @@ class Recogniser(threading.Thread):
             gray = pil_image.convert('L')
             raw_image = gray.tostring()
             zbar_image = zbar.Image(width, height, 'Y800', raw_image)
-            results = scanner.scan(zbar_image) 
+            results = scanner.scan(zbar_image)
             if not results:
                 continue
 
@@ -69,25 +73,30 @@ class Recogniser(threading.Thread):
             draw = PIL.ImageDraw.Draw(foo)
             draw.setink((255, 0, 0, 255))
             for symbol in zbar_image:
-                # So we get some numbers out, not really sure what they are. 
+                # So we get some numbers out, not really sure what they are.
                 # Might as well draw some lines and see what happens.
                 # I think the longest line should be our "best" match...
                 # but why can't it give us a bounding box or something! Nuts.
                 print 'decoded', symbol.type, 'symbol', '"%s"' % symbol.data
 
                 pairs = len(symbol.location)
+                pointNumber = 0
                 for x in range(pairs):
-                  draw.line([symbol.location[x], symbol.location[x-1]])
+                    pointNumber+=1
+                    print x
+                    draw.text(symbol.location[x],str(pointNumber),(255,255,255),font=font)
+                    draw.line([symbol.location[x], symbol.location[x-1]])
+
             latest_output = foo
             latest_output_time = time.time()
-        
+
         print "Stopped"
 
     def stop(self):
         self.running = False
         self.join()
 
-       
+
 r = Recogniser()
 r.daemon = True
 r.start()
