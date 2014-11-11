@@ -32,9 +32,11 @@ def pil2numpy(pil_image):
 
 
 
-# zbar
+# zbar - disable everything except QR codes. Don't want it homing in on kitkat wrappers or creating false positives.
 scanner = zbar.ImageScanner()
 scanner.parse_config('enable')
+scanner.set_config(zbar.Symbol.NONE, zbar.Config.ENABLE, 0)
+scanner.set_config(zbar.Symbol.QRCODE, zbar.Config.ENABLE, 1)
 
 latest_frame = None
 latest_output = None
@@ -79,13 +81,28 @@ class Recogniser(threading.Thread):
                 # but why can't it give us a bounding box or something! Nuts.
                 print 'decoded', symbol.type, 'symbol', '"%s"' % symbol.data
 
+                #James was here - Label the corners, find the centre of the QR code, and mark it.
+                #Provide a sort of "vector" arrow to go along.
+                #Should probably go in a function, but hey....
                 pairs = len(symbol.location)
                 pointNumber = 0
+                xmid = 0
+                ymid = 0
                 for x in range(pairs):
                     pointNumber+=1
-                    print x
                     draw.text(symbol.location[x],str(pointNumber),(255,255,255),font=font)
                     draw.line([symbol.location[x], symbol.location[x-1]])
+                    xmid += symbol.location[x][0]
+                    ymid += symbol.location[x][1]
+                xmid = xmid/4
+                ymid = ymid/4
+                print xmid,ymid
+                draw.point((xmid, ymid), 'red')
+
+                screen_xmid =pil_image.size[0]/2
+                screen_ymid = pil_image.size[1]/2
+                draw.line((screen_xmid, screen_ymid, xmid, ymid), fill='red')
+
 
             latest_output = foo
             latest_output_time = time.time()
@@ -124,7 +141,8 @@ if video.isOpened():
             pil_image.paste(latest_output, mask=latest_output.split()[3])
         display = pil2numpy(pil_image)
 
-        display = cv2.flip(display, 1)
+        #Why do we keep flipping things? I guess it helps with coordinating the movements of the human, but it doens't represent what the camera sees...
+        #display = cv2.flip(display, 1)
         cv2.imshow("preview", display)
 
         key = cv2.waitKey(2)
