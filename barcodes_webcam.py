@@ -5,7 +5,6 @@ import threading
 import time
 
 import cv2
-import IPython.display
 import numpy
 import PIL.Image
 import PIL.ImageDraw
@@ -35,7 +34,7 @@ def pil2numpy(pil_image):
 # zbar - disable everything except QR codes. Don't want it homing in on kitkat wrappers or creating false positives.
 scanner = zbar.ImageScanner()
 scanner.parse_config('enable')
-scanner.set_config(zbar.Symbol.NONE, zbar.Config.ENABLE, 0)
+#scanner.set_config(zbar.Symbol.NONE, zbar.Config.ENABLE, 0)
 scanner.set_config(zbar.Symbol.QRCODE, zbar.Config.ENABLE, 1)
 
 latest_frame = None
@@ -142,7 +141,7 @@ if video.isOpened():
         display = pil2numpy(pil_image)
 
         #Why do we keep flipping things? I guess it helps with coordinating the movements of the human, but it doens't represent what the camera sees...
-        #display = cv2.flip(display, 1)
+        display = cv2.flip(display, 1)
         cv2.imshow("preview", display)
 
         key = cv2.waitKey(2)
